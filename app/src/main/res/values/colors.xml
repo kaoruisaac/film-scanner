@@ -5,4 +5,6 @@
     <color name="orange">#f17000</color>
     <color name="black">#1e1e1e</color>
     <color name="pure_black">#000</color>
+    <color name="green">#4cfd46</color>
+    <color name="dark_red">#7c6b67</color>
 </resources>

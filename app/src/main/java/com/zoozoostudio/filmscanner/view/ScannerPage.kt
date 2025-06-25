@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
@@ -31,13 +33,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.zoozoostudio.filmscanner.R // Import your R file
+import com.zoozoostudio.filmscanner.components.CameraSwitcher
 
 @Composable
 fun ScannerPage() {
     var sliderPosition by remember { mutableStateOf(.5f) }
-    val colorOrange = colorResource(id = R.color.orange);
-    val colorLightBlue = colorResource(id = R.color.light_blue);
+    val orangeColor = colorResource(id = R.color.orange);
+    val lightBlueColor = colorResource(id = R.color.light_blue);
 
     Column (
         modifier = Modifier
@@ -52,62 +56,51 @@ fun ScannerPage() {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.camera_switch),
-                    contentDescription = "Switch Camera",
-                    tint = colorLightBlue,
-                    modifier = Modifier.clickable(
-                        onClick = {}
-                    )
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.dot),
-                        contentDescription = "",
-                        tint = colorLightBlue,
-                    )
-                    Icon(
-                        painter = painterResource(R.drawable.dot_outline),
-                        contentDescription = "",
-                        tint = colorLightBlue,
-                    )
-                    Icon(
-                        painter = painterResource(R.drawable.dot_outline),
-                        contentDescription = "",
-                        tint = colorLightBlue,
-                    )
-                }
-            }
+            CameraSwitcher()
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
-
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.arrow_down),
-                        contentDescription = "",
-                        tint = colorLightBlue,
-                    )
-                    Text(
-                        fontSize = 20.sp,
-                        text = "Scanner",
-                        color = colorLightBlue
-                    )
+                Box() {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.clickable(
+                            onClick = {
+                                // 觸發一個浮動的下拉選單
+                            },
+                        )
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.arrow_down),
+                            contentDescription = "",
+                            tint = lightBlueColor,
+                        )
+                        Text(
+                            fontSize = 20.sp,
+                            text = "Scanner",
+                            color = lightBlueColor
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = true,
+                        onDismissRequest = { /* Handle dismiss if needed */ },
+                        modifier = Modifier.background(color = colorResource(R.color.black))
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Scanner", color = lightBlueColor) },
+                            onClick = { /* Handle Item 1 click */ }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Lighter", color = lightBlueColor) },
+                            onClick = { /* Handle Item 2 click */ }
+                        )
+                    }
                 }
                 Icon(
                     painter = painterResource(R.drawable.setting),
                     contentDescription = "settings",
-                    tint = colorLightBlue,
+                    tint = lightBlueColor,
                     modifier = Modifier.clickable(
                         onClick = {}
                     )
@@ -135,7 +128,7 @@ fun ScannerPage() {
                 Icon(
                     painter = painterResource(R.drawable.temperature),
                     contentDescription = "temperature",
-                    tint = colorLightBlue,
+                    tint = lightBlueColor,
                 )
                 Slider(
                     value = sliderPosition,
@@ -150,10 +143,11 @@ fun ScannerPage() {
             }
             Row(
                 modifier = Modifier
-                    .background(color = colorLightBlue.copy(.1f))
+                    .background(color = lightBlueColor.copy(.1f))
                     .fillMaxWidth()
                     .height(70.dp)
-                    .padding(16.dp).clickable(
+                    .padding(16.dp)
+                    .clickable(
                         onClick = {}
                     ),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -166,18 +160,18 @@ fun ScannerPage() {
                     Icon(
                         painter = painterResource(R.drawable.folder),
                         contentDescription = "folder",
-                        tint = colorLightBlue,
+                        tint = lightBlueColor,
                     )
                     Text(
                         fontSize = 20.sp,
                         text = "Folder",
-                        color = colorLightBlue
+                        color = lightBlueColor
                     )
                 }
                 Icon(
                     painter = painterResource(R.drawable.arrow_right_circle),
                     contentDescription = "arrow",
-                    tint = colorLightBlue,
+                    tint = lightBlueColor,
                 )
             }
             Box(
@@ -196,7 +190,7 @@ fun ScannerPage() {
                 ) {
                     val canvasRadius = size.width / 2
                     drawCircle(
-                        color = colorOrange,
+                        color = orangeColor,
                         center = Offset(x = canvasRadius, y = canvasRadius),
                         radius = canvasRadius,
                     )
