@@ -18,23 +18,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zoozoostudio.filmscanner.R
+import com.zoozoostudio.filmscanner.components.ModeSelector
+import com.zoozoostudio.filmscanner.utils.ActivityLocalProvider
+import com.zoozoostudio.filmscanner.utils.LocalColorCollection
 
 @Composable
 fun LighterPage() {
-    val darkRedColor = colorResource(R.color.dark_red);
-    val lightBlueColor = colorResource(R.color.light_blue);
-    val opacityWhiteColor = colorResource(R.color.white).copy(alpha = 0.1f);
+    val colorCollection = LocalColorCollection.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = colorResource(R.color.black)),
+            .background(color = colorCollection.black),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(
@@ -54,7 +54,7 @@ fun LighterPage() {
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val radius = size.width / 2
                         drawCircle(
-                            color = darkRedColor,
+                            color = colorCollection.darkRed,
                             radius = radius,
                             center = center
                         )
@@ -63,32 +63,18 @@ fun LighterPage() {
                 Text(
                     text = "Connected",
                     fontSize = 20.sp,
-                    color = lightBlueColor,
+                    color = colorCollection.lightBlue,
                 )
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.arrow_down),
-                        contentDescription = "",
-                        tint = lightBlueColor,
-                    )
-                    Text(
-                        fontSize = 20.sp,
-                        text = "Lighter",
-                        color = lightBlueColor
-                    )
-                }
+                ModeSelector()
                 Icon(
                     painter = painterResource(R.drawable.setting),
                     contentDescription = "settings",
-                    tint = lightBlueColor,
+                    tint = colorCollection.lightBlue,
                     modifier = Modifier.clickable(
                         onClick = {}
                     )
@@ -99,7 +85,7 @@ fun LighterPage() {
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .background(colorResource(R.color.pure_black))
+                .background(colorCollection.black)
         ) {
             // will replace by camera view
 
@@ -108,7 +94,7 @@ fun LighterPage() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(180.dp)
-                .background(color = colorResource(R.color.black)),
+                .background(colorCollection.black),
             contentAlignment = Alignment.Center,
         ) {
             Column(
@@ -127,7 +113,7 @@ fun LighterPage() {
                             .fillMaxSize()
                     ) {
                         drawRoundRect(
-                            color = opacityWhiteColor,
+                            color = colorCollection.lightBlue.copy(alpha = 0.1f),
                             size = size,
                             cornerRadius = CornerRadius(65f, 65f),
                         )
@@ -135,7 +121,7 @@ fun LighterPage() {
                     Icon(
                         painter = painterResource(R.drawable.remote_camera),
                         contentDescription = "remote camera",
-                        tint = colorResource(R.color.light_blue)
+                        tint = colorCollection.lightBlue
                     )
                 }
             }
@@ -146,5 +132,7 @@ fun LighterPage() {
 @Composable
 @Preview
 fun LighterPreviewPage() {
-    LighterPage()
+    ActivityLocalProvider {
+        LighterPage()
+    }
 }
