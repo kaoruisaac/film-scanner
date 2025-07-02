@@ -21,6 +21,7 @@ val LocalAppModeState = compositionLocalOf<MutableState<AppModeState>> { error("
 val LocalColorCollection = compositionLocalOf<ColorCollection> { error("No ColorCollection provided") }
 class ColorCollection {
     var lightBlue: Color = Color.Unspecified;
+    var blue: Color = Color.Unspecified;
     var orange: Color = Color.Unspecified;
     var black: Color = Color.Unspecified;
     var pureBlack: Color = Color.Unspecified;
@@ -30,6 +31,7 @@ class ColorCollection {
     @Composable
     fun CollectColors () {
         lightBlue = colorResource(id = R.color.light_blue)
+        blue = colorResource(id = R.color.blue)
         orange = colorResource(id = R.color.orange)
         black = colorResource(id = R.color.black)
         pureBlack = colorResource(id = R.color.pure_black)

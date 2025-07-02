@@ -14,27 +14,71 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.zoozoostudio.filmscanner.utils.LocalBoundCamera
 
 @SuppressLint("ClickableViewAccessibility")
 @Composable
 fun NegativeCameraPreview() {
     val isPreview = LocalInspectionMode.current
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val boundCamera = LocalBoundCamera.current
+
+    // 用 remember 保存 PreviewView 的實例
+    var previewView: PreviewView? by remember { mutableStateOf(null) }
+
+    // Lifecycle-aware 的綁定／解绑
+    DisposableEffect(previewView) {
+        // 1. 取得 CameraProvider
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+        var cameraProvider: ProcessCameraProvider? = null
+
+        // 2. 當 PreviewView 已就緒，就綁定到 lifecycle
+        previewView?.let { pv ->
+            cameraProviderFuture.addListener({
+                cameraProvider = cameraProviderFuture.get().also { provider ->
+                    // 先解绑所有舊用例，確保乾淨
+                    provider.unbindAll()
+
+                    // 建立 Preview UseCase
+                    val previewUseCase = Preview.Builder()
+                        .build()
+                        .also { it.setSurfaceProvider(pv.surfaceProvider) }
+
+                    // 綁定到當前 activity lifecycle
+                    val camera = provider.bindToLifecycle(
+                        lifecycleOwner,
+                        CameraSelector.DEFAULT_BACK_CAMERA,
+                        previewUseCase
+                    )
+                    boundCamera.setCamera(camera.cameraControl, camera.cameraInfo)
+                }
+            }, ContextCompat.getMainExecutor(context))
+        }
+
+        onDispose {
+            // Composable 拆除時，取消所有用例綁定
+            cameraProvider?.unbindAll()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (!isPreview) {
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { ctx ->
-                    // 建立 PreviewView
                     PreviewView(ctx).apply {
+                        previewView = this
+                        this.scaleType = PreviewView.ScaleType.FIT_CENTER
+                        this.setBackgroundColor(0xFFC7C7C7.toInt())
                         implementationMode = PreviewView.ImplementationMode.COMPATIBLE
 
-                        // 套用負片色彩矩陣
+                        // 負片濾鏡
                         val cm = ColorMatrix(floatArrayOf(
                             -1f,  0f,  0f, 0f, 255f,
                             0f, -1f,  0f, 0f, 255f,
@@ -47,48 +91,23 @@ fun NegativeCameraPreview() {
                             )
                         )
 
-                        // 這裡先建立 ScaleGestureDetector，處理兩指縮放
-                        val scaleGestureDetector = ScaleGestureDetector(ctx, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                        // 兩指縮放
+                        val scaleDetector = ScaleGestureDetector(ctx, object: ScaleGestureDetector.SimpleOnScaleGestureListener() {
                             override fun onScale(detector: ScaleGestureDetector): Boolean {
-                                // 讀當前 zoomRatio、計算新值、並限制在 min~max 之間
-                                val currentZoom = boundCamera.cameraInfo.zoomState.value?.zoomRatio ?: 1f
-                                val newZoom = (currentZoom * detector.scaleFactor)
-                                    .coerceIn(
-                                        boundCamera.minZoomRatio.value,
-                                        boundCamera.maxZoomRatio.value
-                                    )
-                                boundCamera.setZoomRatio(newZoom)
+                                val current = boundCamera.cameraInfo.zoomState.value?.zoomRatio ?: 1f
+                                val nz = (current * detector.scaleFactor)
+                                    .coerceIn(boundCamera.minZoomRatio.value, boundCamera.maxZoomRatio.value)
+                                boundCamera.setZoomRatio(nz)
                                 return true
                             }
                         })
-
-                        // 把手勢事件交給 scaleDetector 處理
-                        setOnTouchListener { _, event ->
-                            scaleGestureDetector.onTouchEvent(event)
+                        setOnTouchListener { _, ev ->
+                            scaleDetector.onTouchEvent(ev)
                             true
                         }
-
-                        // 綁定 CameraX
-                        val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-                        cameraProviderFuture.addListener({
-                            val cameraProvider = cameraProviderFuture.get()
-                            val previewUseCase = Preview.Builder()
-                                .build()
-                                .also { it.setSurfaceProvider(surfaceProvider) }
-                            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
-                            cameraProvider.unbindAll()
-                            val camera = cameraProvider.bindToLifecycle(
-                                ctx as ComponentActivity,
-                                cameraSelector,
-                                previewUseCase
-                            )
-                            // 將 cameraControl、cameraInfo 存進 LocalBoundCamera
-                            boundCamera.setCamera(camera.cameraControl, camera.cameraInfo)
-                        }, ContextCompat.getMainExecutor(ctx))
                     }
                 },
-                update = { /* 如需動態切換效果，可在此更新 */ }
+                update = { /* 如需動態更新時使用 */ }
             )
         }
     }
