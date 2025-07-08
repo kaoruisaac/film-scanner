@@ -1,5 +1,7 @@
 package com.zoozoostudio.filmscanner.view
 
+import android.content.Context
+import android.net.Uri
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -28,23 +29,44 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.zoozoostudio.filmscanner.R // Import your R file
 import com.zoozoostudio.filmscanner.components.CameraSwitcher
 import com.zoozoostudio.filmscanner.components.ModeSelector
 import com.zoozoostudio.filmscanner.components.NegativeCameraPreview
+import com.zoozoostudio.filmscanner.components.PathSelector
 import com.zoozoostudio.filmscanner.components.RectCropperOverlay
 import com.zoozoostudio.filmscanner.utils.ActivityLocalProvider
+import com.zoozoostudio.filmscanner.utils.LocalBoundCamera
 import com.zoozoostudio.filmscanner.utils.LocalColorCollection
+import androidx.core.net.toUri
+import com.zoozoostudio.filmscanner.components.ShutterMask
 
 @Composable
 fun ScannerPage() {
-    var sliderPosition by remember { mutableFloatStateOf(.5f) }
+    val isPreview = LocalInspectionMode.current
+    val context = LocalContext.current
+    var whiteBalance by remember { mutableFloatStateOf(.5f) }
     var cropRect by remember { mutableStateOf(Rect.Zero) }
+    var frameRect by remember { mutableStateOf(Rect.Zero) }
+    var outputUri by remember {
+        mutableStateOf<Uri?>(
+                if (isPreview) {
+                    Uri.Builder().apply {
+                        appendPath("/preview/path/of/Pictures")
+                    }.build()
+                } else {
+                    val sharedPreferences = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+                    sharedPreferences.getString("outputUri", null)?.toUri()
+                },
+        )
+    }
     val colorCollection = LocalColorCollection.current
+    val boundCamera = LocalBoundCamera.current
 
     Column (
         modifier = Modifier
@@ -91,12 +113,18 @@ fun ScannerPage() {
                         offset = Offset(cropRectOffsetX, cropRectOffsetY),
                         size = Size(defaultCropRectWidth, defaultCropRectHeight)
                     )
+                    frameRect = Rect(
+                        offset = Offset(0f, 0f),
+                        size = Size(w.toFloat(), h.toFloat())
+                    )
                 }
         ) {
-            NegativeCameraPreview()
-            RectCropperOverlay(
-                cropRect
-            )
+            ShutterMask.Content {
+                NegativeCameraPreview(whiteBalance)
+                RectCropperOverlay(
+                    cropRect
+                )
+            }
         }
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -114,8 +142,8 @@ fun ScannerPage() {
                     tint = colorCollection.lightBlue,
                 )
                 Slider(
-                    value = sliderPosition,
-                    onValueChange = { sliderPosition = it },
+                    value = whiteBalance,
+                    onValueChange = { whiteBalance = it },
                     modifier = Modifier.weight(1f), // Allow Slider to take available space
                     colors = SliderDefaults.colors(
                         thumbColor = colorCollection.orange, // Color of the thumb
@@ -124,39 +152,10 @@ fun ScannerPage() {
                     )
                 )
             }
-            Row(
-                modifier = Modifier
-                    .background(color = colorCollection.lightBlue.copy(.1f))
-                    .fillMaxWidth()
-                    .height(70.dp)
-                    .padding(16.dp)
-                    .clickable(
-                        onClick = {}
-                    ),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.folder),
-                        contentDescription = "folder",
-                        tint = colorCollection.lightBlue,
-                    )
-                    Text(
-                        fontSize = 20.sp,
-                        text = "Folder",
-                        color = colorCollection.lightBlue
-                    )
-                }
-                Icon(
-                    painter = painterResource(R.drawable.arrow_right_circle),
-                    contentDescription = "arrow",
-                    tint = colorCollection.lightBlue,
-                )
-            }
+            PathSelector(
+                outputUri,
+                onChange = { outputUri = it }
+            )
             Box(
                 modifier = Modifier
                     .height(130.dp)
@@ -168,7 +167,23 @@ fun ScannerPage() {
                         .height(80.dp)
                         .width(80.dp)
                         .clickable(
-                            onClick = {}
+                            onClick = {
+                                if (outputUri != null) {
+                                    try {
+                                        ShutterMask.shut()
+                                        boundCamera.takePicture(
+                                            cropRect,
+                                            frameRect,
+                                            outputUri = outputUri!!,
+                                            whiteBalance,
+                                            context,
+                                        )
+                                        ShutterMask.success()
+                                    } catch (e: Exception) {
+                                        ShutterMask.failed(context)
+                                    }
+                                }
+                            }
                         ),
                 ) {
                     val canvasRadius = size.width / 2
